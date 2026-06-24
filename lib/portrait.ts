@@ -11,9 +11,9 @@ export const IDENTITY = {
     { label: "STATE", value: "UNFOLDING" },
   ],
   links: [
-    { label: "GITHUB", href: "#" },
-    { label: "LINKEDIN", href: "#" },
-    { label: "RESUME", href: "#" },
+    { label: "GITHUB", href: "https://github.com/HexCrystal69" },
+    { label: "LINKEDIN", href: "https://www.linkedin.com/in/prayas-kar" },
+    { label: "RESUME", href: "https://drive.google.com/file/d/1dZuBDHdfOs1eZYlzUXcmYIOfN_HW-utP/view?usp=sharing" },
   ],
 }
 
@@ -26,7 +26,7 @@ export const STATES = [
   "Unfolding",
 ]
 
-export type ChapterId = "origin" | "friction" | "alignment" | "resonance" | "work"
+export type ChapterId = "origin" | "systems" | "alignment" | "trajectory" | "work"
 
 export type Layer = {
   label: string
@@ -43,7 +43,13 @@ export type Project = {
   title: string
   description: string
   tags: string[]
-  href?: string
+  category: string
+  status: string
+  problem: string
+  architecture: string
+  challenges: string
+  outcomes: string
+  github: string
 }
 
 export type ChapterContent =
@@ -65,49 +71,45 @@ export const CHAPTERS: Chapter[] = [
   {
     id: "origin",
     nav: "ORIGIN",
-    title: "The Foundations",
+    title: "Origin",
     subtitle: "",
     content: {
       type: "layers",
       items: [
         {
-          label: "CURIOSITY",
-          body: "Early fascination with how complex systems organize themselves from chaos. A childhood spent dismantling clocks to understand time.",
+          label: "IDENTITY",
+          body: "Prayas Kar — Kolkata, India. Final-year Computer Science Engineering student at SRM Institute of Science and Technology (CGPA: 9.30/10.00).",
         },
         {
-          label: "CORE MOTIVATION",
-          body: "The drive to build tools that expand human capability. Technology is not the end, but the lever for the mind.",
+          label: "CORE FOCUS",
+          body: "Specializing in AI Engineering, Data Engineering, Generative AI, and Backend Systems.",
         },
         {
-          label: "VALUES",
-          body: "Precision over speed. Clarity over complexity. The belief that aesthetics are a functional requirement of good engineering.",
-        },
-        {
-          label: "BACKGROUND",
-          body: "Formed at the intersection of classical logic and digital experimentation. Seeing code as a medium for sculpture.",
+          label: "MISSION",
+          body: "Focusing on the transition from foundational computer science theory toward constructing intelligent, context-aware systems and scalable data infrastructure.",
         },
       ],
     },
   },
   {
-    id: "friction",
-    nav: "FRICTION",
-    title: "Growth through Resistance",
+    id: "systems",
+    nav: "SYSTEMS",
+    title: "Systems",
     subtitle: "",
     content: {
       type: "phases",
       items: [
         {
-          label: "PHASE 01: THE WALL OF INCOMPETENCE",
-          body: "Every significant breakthrough was preceded by a period of total confusion. Learning to sit with the discomfort of not knowing is the primary skill.",
+          label: "PHASE 01: LOCAL INFERENCE & RETRIEVAL WORKFLOWS",
+          body: "Designed retrieval and indexing workflows optimized for local inference environments. Built structured document chunking and metadata association schemas to ensure model accuracy and reduce search index latency.",
         },
         {
-          label: "PHASE 02: PRODUCTIVE FAILURE",
-          body: 'Rebuilding the same engine four times until the architecture felt "honest". Friction is the heat that tempers the steel.',
+          label: "PHASE 02: MULTIMODAL FORECASTING ALIGNMENT",
+          body: "Aligned temporal sequences between high-frequency numerical data feeds and textual sentiment inputs to support multi-dimensional risk prediction.",
         },
         {
-          label: "PHASE 03: THE REFINEMENT LOOP",
-          body: "Stripping away features until only the essential remains. The hardest part of building is knowing what to kill.",
+          label: "PHASE 03: DISTRIBUTED TELEMETRY STREAMING",
+          body: "Implemented structured event ingestion and processing workflows across distributed streams to capture and serialize telemetry logs.",
         },
       ],
     },
@@ -115,70 +117,88 @@ export const CHAPTERS: Chapter[] = [
   {
     id: "alignment",
     nav: "ALIGNMENT",
-    title: "The Intersection",
+    title: "Alignment",
     subtitle: "",
     content: {
       type: "columns",
       items: [
         {
-          label: "TECHNICAL MASTERY",
-          body: "Fluent in the languages of the machine, but obsessed with the user's pulse.",
+          label: "AI ENGINEERING",
+          body: "PyTorch, TensorFlow, LangChain, FAISS, Ollama, NLP, Computer Vision, RAG.",
         },
         {
-          label: "DESIGN INTUITION",
-          body: 'Spacing, rhythm, and weight. The invisible forces that make software feel "right".',
+          label: "DATA ENGINEERING",
+          body: "Kafka, Spark, ETL, PostgreSQL, Data Warehousing.",
         },
         {
-          label: "STRATEGIC VISION",
-          body: "Connecting today's code to a five-year trajectory of impact.",
+          label: "SYSTEMS & LANGUAGES",
+          body: "FastAPI, SQLAlchemy, REST APIs, Docker, WebSockets, Python, Java, SQL, JavaScript.",
         },
       ],
-      quote: '"Alignment is the moment when what you are doing, what you are good at, and what the world needs stop being three different things."',
+      quote: '"Alignment is the convergence of high-efficiency systems execution, expressive data design, and clear interface utility."',
     },
   },
   {
-    id: "resonance",
-    nav: "RESONANCE",
-    title: "Future Direction",
+    id: "trajectory",
+    nav: "TRAJECTORY",
+    title: "Trajectory",
     subtitle: "",
     content: {
       type: "editorial",
-      body: "I am moving toward systems that feel biological — growing with use, adapting to the user, and maintaining a sense of poetic utility.",
+      body: "I build software that bridges the gap between scalable data pipelines and practical machine learning applications, focusing on low-latency utility and production-ready architectures.",
       bullets: [
-        "Developing interfaces for deep focus and cognitive extension.",
-        "Exploring the frontier where AI becomes a collaborative brush, not a replacement for the artist.",
-        "Building software that respects human attention as the world's scarcest resource.",
+        "Internship (1Stop Technologies): Conducted Android Penetration Testing using Burp Suite, MobSF, Frida, and Kali Linux.",
+        "Internship (LearnNex): Executed Data Cleaning, Data Visualization, Predictive Analytics, and Machine Learning modeling.",
+        "Professional Certifications: Google AI Essentials, Google Data Analytics, IBM RAG and Agentic AI, Microsoft AI Product Manager.",
       ],
     },
   },
   {
     id: "work",
-    nav: "WORK",
-    title: "Evidence of Progress",
+    nav: "ARTFACTS",
+    title: "Artifacts",
     subtitle: "",
     content: {
       type: "work",
       projects: [
         {
-          id: "P-042",
-          title: "Kinetics Engine",
-          description: "A physics-based layout system for web applications that mimics fluid dynamics.",
-          tags: ["THREE.JS", "GLSL"],
-          href: "#",
+          id: "medical-rag",
+          title: "Medical-RAG Pipeline",
+          description: "A local retrieval-augmented generation system for clinical document question answering with vector indexing.",
+          tags: ["PYTHON", "FAISS", "OLLAMA", "RAG"],
+          category: "AI SYSTEM",
+          status: "COMPLETED / LOCAL INFERENCE",
+          problem: "Specialized clinical files require domain-specific terminology grounding to prevent general model hallucinations.",
+          architecture: "Text ingestion pipeline extracting document chunks into a local FAISS vector index, querying a self-hosted local model (Ollama) with injected context.",
+          challenges: "Optimizing retrieval search queries and managing memory configurations in local runtimes.",
+          outcomes: "Verified local question answering with context grounding.",
+          github: "https://github.com/HexCrystal69/medical-rag",
         },
         {
-          id: "P-038",
-          title: "Loom Interface",
-          description: "A productivity environment designed around the concept of thread-based focus.",
-          tags: ["REACT", "RUST"],
-          href: "#",
+          id: "mfis",
+          title: "Multimodal Financial Intelligence System",
+          description: "An analytics engine processing textual transcripts and market metrics for financial risk prediction.",
+          tags: ["PYTHON", "MACHINE LEARNING", "NLP"],
+          category: "AI / DATA SYSTEM",
+          status: "ACTIVE DEVELOPMENT",
+          problem: "Quantitative forecasting models analyze tabular metrics in isolation, omitting textual sentiment indicators.",
+          architecture: "Text processing engine extracting sentiment indicators coupled with historical price data trends.",
+          challenges: "Structuring disparate textual transcripts alongside numerical time-series price data.",
+          outcomes: "Consolidated pipeline analyzing text sentiment alongside financial metrics.",
+          github: "https://github.com/HexCrystal69/mfis",
         },
         {
-          id: "P-021",
-          title: "Synapse UI",
-          description: "An experimental component library leveraging neuro-morphic design principles.",
-          tags: ["TYPESCRIPT", "FRAME MOTION"],
-          href: "#",
+          id: "realtime-event",
+          title: "Real-Time Event Processing Platform",
+          description: "An event-driven streaming pipeline capturing and processing telemetry data at scale.",
+          tags: ["KAFKA", "SPARK", "POSTGRESQL", "ETL"],
+          category: "DATA SYSTEM",
+          status: "COMPLETED",
+          problem: "Live telemetry logs require robust ingestion and buffering pipelines to prevent message loss.",
+          architecture: "Event-driven streaming pipeline using Kafka for message queueing, Spark for data processing, and PostgreSQL/NoSQL databases for storage.",
+          challenges: "Handling event serialization and managing pipeline throughput.",
+          outcomes: "Operational analytics pipeline capable of capturing event logs.",
+          github: "https://github.com/HexCrystal69/realtime-event-platform",
         },
       ],
     },

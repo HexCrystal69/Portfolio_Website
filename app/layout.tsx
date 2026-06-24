@@ -38,8 +38,9 @@ export default function RootLayout({
       lang="en"
       className={`${ibmPlexMono.variable} ${instrumentSerif.variable}`}
       style={{ backgroundColor: '#0C0908' }}
+      suppressHydrationWarning
     >
-      <body className="antialiased" style={{ backgroundColor: '#0C0908' }}>
+      <body className="antialiased" style={{ backgroundColor: '#0C0908' }} suppressHydrationWarning>
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
