@@ -17,7 +17,7 @@ const instrumentSerif = Instrument_Serif({
 })
 
 export const metadata: Metadata = {
-  title: 'Prayas Kar — Still Becoming',
+  title: 'Prayas Kar | Evolving',
   description:
     'Not a portfolio. An exploration of a person in continuous emergence. Uncover the layers — origin, friction, alignment, resonance, work.',
   generator: 'v0.app',
