@@ -165,6 +165,11 @@ export function Exploration() {
     const el = wordRef.current
     if (!el) return
 
+    gsap.set(el, {
+      opacity: 0,
+      y: yOffset(20)
+    })
+
     const tl = gsap.timeline({ repeat: -1 })
 
     // fade-in (0.4s) → hold visible (2.2s) → fade-out (0.4s) → change word → repeat
@@ -241,22 +246,6 @@ export function Exploration() {
         onComplete: () => {
           if (nameWrapperRef.current) {
             gsap.set(nameWrapperRef.current, { opacity: 0, pointerEvents: "none" })
-          }
-          if (wordRef.current) {
-            gsap.killTweensOf(wordRef.current)
-            gsap.fromTo(
-              wordRef.current,
-              { opacity: 0, y: yOffset(20) },
-              {
-                opacity: 1,
-                y: 0,
-                duration: duration(0.4),
-                ease: "power2.out",
-                onComplete: () => {
-                  startWordRotation()
-                }
-              }
-            )
           }
         }
       })
@@ -601,7 +590,6 @@ export function Exploration() {
 
       if (!isHeroClick && !isToggleClick) {
         setShowName(false)
-        startWordRotation()
       }
     }
 
@@ -613,15 +601,14 @@ export function Exploration() {
       clearTimeout(timer)
       document.removeEventListener("click", handleDocumentClick)
     }
-  }, [isMobile, showName, startWordRotation])
+  }, [isMobile, showName])
 
   // Leaving mobile navigation must restore correct hero state
   useEffect(() => {
     if (showMobileNav) {
       setShowName(false)
-      startWordRotation()
     }
-  }, [showMobileNav, startWordRotation])
+  }, [showMobileNav])
 
   // Mobile navigation GSAP transition timeline
   useEffect(() => {
