@@ -5,6 +5,7 @@ import { gsap } from "gsap"
 import { GMAIL_COMPOSE_URL, CHAPTERS, IDENTITY, STATES, type ChapterId } from "@/lib/portrait"
 import { MorphingBlob } from "./morphing-blob"
 import { SectionContent } from "./sections"
+import { CustomCursor } from "./custom-cursor"
 
 const MONO: React.CSSProperties = {
   fontFamily: "var(--font-ibm-mono), 'Courier New', monospace",
@@ -1822,17 +1823,22 @@ export function Exploration() {
           {/* Drawer container */}
           <aside
             ref={mobileDrawerRef}
-            className="absolute top-0 right-0 h-full flex flex-col justify-center gap-6 shadow-2xl border-l"
+            className="absolute top-0 right-0 flex flex-col shadow-2xl border-l mobile-nav-drawer"
             style={{
               width: "min(80vw, 340px)",
+              height: "100dvh",
+              maxHeight: "100dvh",
               backgroundColor: active ? "rgba(245, 230, 211, 0.98)" : "rgba(12, 9, 8, 0.98)",
               borderColor: "var(--border-color-medium, rgba(245, 230, 211, 0.2))",
               transform: "translateX(100%) translateZ(0)",
               pointerEvents: "none",
-              paddingTop: "calc(40px + env(safe-area-inset-top))",
-              paddingBottom: "calc(40px + env(safe-area-inset-bottom))",
+              paddingTop: "calc(var(--drawer-padding-top) + env(safe-area-inset-top))",
+              paddingBottom: "calc(var(--drawer-padding-bottom) + env(safe-area-inset-bottom))",
               paddingLeft: "40px",
               paddingRight: "calc(40px + env(safe-area-inset-right))",
+              overflowY: "auto",
+              overflowX: "hidden",
+              WebkitOverflowScrolling: "touch",
               willChange: "transform",
               backfaceVisibility: "hidden",
               WebkitBackfaceVisibility: "hidden",
@@ -1857,7 +1863,10 @@ export function Exploration() {
             </button>
 
             <div
-              className="flex flex-col items-start gap-5"
+              className="flex flex-col items-start"
+              style={{
+                gap: "var(--drawer-item-gap)",
+              }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Drawer Header */}
@@ -1869,7 +1878,7 @@ export function Exploration() {
                   color: "var(--text-secondary, rgba(245, 230, 211, 0.4))",
                   textTransform: "uppercase",
                   opacity: 0.5,
-                  marginBottom: "8px",
+                  marginBottom: "var(--drawer-header-margin-bottom)",
                 }}
               >
                 NAVIGATION
@@ -1896,8 +1905,11 @@ export function Exploration() {
                       pointerEvents: "auto",
                       borderLeft: isActive ? `2px solid ${ACCENT}` : "2px solid transparent",
                       paddingLeft: isActive ? "10px" : "0px",
-                      paddingTop: "11px",
-                      paddingBottom: "11px",
+                      paddingTop: "var(--drawer-link-padding-y)",
+                      paddingBottom: "var(--drawer-link-padding-y)",
+                      minHeight: "44px",
+                      display: "flex",
+                      alignItems: "center",
                       opacity: isActive ? 1.0 : 0.9,
                       transition: "border-left 150ms cubic-bezier(0.25, 1, 0.5, 1), padding-left 150ms cubic-bezier(0.25, 1, 0.5, 1), opacity 150ms cubic-bezier(0.25, 1, 0.5, 1)",
                     }}
@@ -1932,8 +1944,8 @@ export function Exploration() {
                   width: "100%",
                   backgroundColor: "var(--border-color, rgba(245, 230, 211, 0.15))",
                   opacity: 0.25,
-                  marginTop: "8px",
-                  marginBottom: "8px",
+                  marginTop: "var(--drawer-div1-margin-top)",
+                  marginBottom: "var(--drawer-div1-margin-bottom)",
                 }}
               />
 
@@ -1946,8 +1958,8 @@ export function Exploration() {
                   color: "var(--text-secondary, rgba(245, 230, 211, 0.4))",
                   textTransform: "uppercase",
                   opacity: 0.5,
-                  marginBottom: "8px",
-                  marginTop: "4px"
+                  marginBottom: "var(--drawer-header-margin-bottom)",
+                  marginTop: "var(--drawer-header-margin-top)"
                 }}
                 suppressHydrationWarning
               >
@@ -1967,8 +1979,11 @@ export function Exploration() {
                   color: "var(--text-color, #F5E6D3)",
                   textDecoration: "none",
                   pointerEvents: "auto",
-                  paddingTop: "11px",
-                  paddingBottom: "11px",
+                  paddingTop: "var(--drawer-link-padding-y)",
+                  paddingBottom: "var(--drawer-link-padding-y)",
+                  minHeight: "44px",
+                  display: "flex",
+                  alignItems: "center",
                   opacity: 0.5,
                   transition: "opacity 150ms cubic-bezier(0.25, 1, 0.5, 1)",
                 }}
@@ -1995,8 +2010,11 @@ export function Exploration() {
                   color: "var(--text-color, #F5E6D3)",
                   textDecoration: "none",
                   pointerEvents: "auto",
-                  paddingTop: "11px",
-                  paddingBottom: "11px",
+                  paddingTop: "var(--drawer-link-padding-y)",
+                  paddingBottom: "var(--drawer-link-padding-y)",
+                  minHeight: "44px",
+                  display: "flex",
+                  alignItems: "center",
                   opacity: 0.5,
                   transition: "opacity 150ms cubic-bezier(0.25, 1, 0.5, 1)",
                 }}
@@ -2023,8 +2041,11 @@ export function Exploration() {
                   color: "var(--text-color, #F5E6D3)",
                   textDecoration: "none",
                   pointerEvents: "auto",
-                  paddingTop: "11px",
-                  paddingBottom: "11px",
+                  paddingTop: "var(--drawer-link-padding-y)",
+                  paddingBottom: "var(--drawer-link-padding-y)",
+                  minHeight: "44px",
+                  display: "flex",
+                  alignItems: "center",
                   opacity: 0.5,
                   transition: "opacity 150ms cubic-bezier(0.25, 1, 0.5, 1)",
                 }}
@@ -2046,8 +2067,8 @@ export function Exploration() {
                   width: "100%",
                   backgroundColor: "var(--border-color, rgba(245, 230, 211, 0.15))",
                   opacity: 0.25,
-                  marginTop: "20px",
-                  marginBottom: "8px",
+                  marginTop: "var(--drawer-div2-margin-top)",
+                  marginBottom: "var(--drawer-div2-margin-bottom)",
                 }}
               />
 
@@ -2060,8 +2081,8 @@ export function Exploration() {
                   color: "var(--text-secondary, rgba(245, 230, 211, 0.4))",
                   textTransform: "uppercase",
                   opacity: 0.5,
-                  marginBottom: "8px",
-                  marginTop: "4px"
+                  marginBottom: "var(--drawer-header-margin-bottom)",
+                  marginTop: "var(--drawer-header-margin-top)"
                 }}
                 suppressHydrationWarning
               >
@@ -2080,8 +2101,11 @@ export function Exploration() {
                   pointerEvents: "auto",
                   borderLeft: "2px solid transparent",
                   paddingLeft: "0px",
-                  paddingTop: "11px",
-                  paddingBottom: "11px",
+                  paddingTop: "var(--drawer-recruiter-padding-y)",
+                  paddingBottom: "var(--drawer-recruiter-padding-y)",
+                  minHeight: "44px",
+                  display: "flex",
+                  alignItems: "center",
                   opacity: 0.9,
                   transition: "opacity 150ms cubic-bezier(0.25, 1, 0.5, 1)",
                 }}
@@ -2192,6 +2216,7 @@ export function Exploration() {
           {toastMessage}
         </div>
       )}
+      {!isMobile && <CustomCursor />}
     </main>
   )
 }

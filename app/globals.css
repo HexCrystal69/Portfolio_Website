@@ -83,9 +83,31 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Responsive Mobile Navigation Drawer spacing variables */
+  --drawer-padding-top: 40px;
+  --drawer-padding-bottom: 40px;
+  --drawer-item-gap: 20px;
+  --drawer-div1-margin-top: 8px;
+  --drawer-div1-margin-bottom: 8px;
+  --drawer-div2-margin-top: 20px;
+  --drawer-div2-margin-bottom: 8px;
+  --drawer-header-margin-bottom: 8px;
+  --drawer-header-margin-top: 4px;
+  --drawer-link-padding-y: 11px;
+  --drawer-recruiter-padding-y: 11px;
 }
 
 
+
+/* Hide default cursor on desktop (custom cursor replaces it) */
+@media (min-width: 768px) and (pointer: fine) {
+  *,
+  *::before,
+  *::after {
+    cursor: none !important;
+  }
+}
 
 @layer base {
   * {
@@ -138,5 +160,46 @@
   }
   .hide-scrollbar::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* Mobile navigation drawer spacing/layout media queries */
+.mobile-nav-drawer {
+  justify-content: center;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.mobile-nav-drawer::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-height: 800px) {
+  :root {
+    --drawer-padding-top: 32px;
+    --drawer-padding-bottom: 32px;
+    --drawer-item-gap: 16px;
+    --drawer-div1-margin-top: 6px;
+    --drawer-div1-margin-bottom: 6px;
+    --drawer-div2-margin-top: 16px;
+    --drawer-div2-margin-bottom: 6px;
+    --drawer-header-margin-bottom: 6px;
+    --drawer-header-margin-top: 3px;
+  }
+}
+
+@media (max-height: 700px) {
+  :root {
+    --drawer-padding-top: 26px;
+    --drawer-padding-bottom: 26px;
+    --drawer-item-gap: 13px;
+    --drawer-div1-margin-top: 5px;
+    --drawer-div1-margin-bottom: 5px;
+    --drawer-div2-margin-top: 13px;
+    --drawer-div2-margin-bottom: 5px;
+    --drawer-header-margin-bottom: 5px;
+    --drawer-header-margin-top: 3px;
+    --drawer-link-padding-y: 7px;
+    --drawer-recruiter-padding-y: 7px;
   }
 }
