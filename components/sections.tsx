@@ -40,7 +40,7 @@ function LayersSection({ items }: { items: { label: string; body: string }[] }) 
               </p>
             </div>
           </div>
-          {DIVIDER}
+          {i < items.length - 1 && DIVIDER}
         </div>
       ))}
     </div>
@@ -77,7 +77,7 @@ function PhasesSection({ items }: { items: { label: string; body: string }[] }) 
               </p>
             </div>
           </div>
-          {DIVIDER}
+          {i < items.length - 1 && DIVIDER}
         </div>
       ))}
     </div>
@@ -238,13 +238,13 @@ function WorkSection({
   return (
     <div className="flex w-full flex-col gap-0">
       {DIVIDER}
-      {projects.map((p) => {
+      {projects.map((p, i) => {
         const activeView = activeViews[p.id] || null
 
         return (
           <div
             key={p.id}
-            className="content-block flex flex-col gap-3 px-4 py-6 border-b transition-colors"
+            className={`content-block flex flex-col gap-3 px-4 py-6 transition-colors ${i < projects.length - 1 ? "border-b" : ""}`}
             style={{
               borderColor: "var(--border-color, rgba(245,230,211,0.1))",
             }}

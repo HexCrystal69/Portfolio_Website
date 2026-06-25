@@ -116,13 +116,14 @@ export function Exploration() {
 
   const [stateIdx, setStateIdx] = useState(0)
   const [startTime, setStartTime] = useState(0)
-  
+
   useEffect(() => {
     setStartTime(Date.now())
   }, [])
 
   const [showName, setShowName] = useState(false)
   const [pulse, setPulse] = useState(false)
+  const [chevronHovered, setChevronHovered] = useState(false)
   const [recruiterStep, setRecruiterStep] = useState<number | null>(null)
   const recruiterRef = useRef<HTMLDivElement>(null)
   const isSecToSecRef = useRef(false)
@@ -137,12 +138,15 @@ export function Exploration() {
   }, [])
 
   const [showMobileNav, setShowMobileNav] = useState(false)
+  const [showNavTrigger, setShowNavTrigger] = useState(true)
   const [mobileHeaderVisible, setMobileHeaderVisible] = useState(true)
   const [showHomeButton, setShowHomeButton] = useState(false)
+  const [sectionNeedsScrolling, setSectionNeedsScrolling] = useState(false)
   const homeButtonTimerRef = useRef<NodeJS.Timeout | null>(null)
   const scrollDebounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   const lastAppearedTimeRef = useRef<number>(0)
   const lastScrollY = useRef(0)
+  const previousScrollYRef = useRef(0)
 
   const [showCue, setShowCue] = useState(false)
   const showCueTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -161,6 +165,7 @@ export function Exploration() {
   const mobileNavLinksRef = useRef<(HTMLAnchorElement | HTMLButtonElement | null)[]>([])
   const chevronRef = useRef<HTMLButtonElement>(null)
   const pageWrapperRef = useRef<HTMLDivElement>(null)
+  const mobileNavTlRef = useRef<gsap.core.Timeline | null>(null)
 
   const handleRecruiterNav = useCallback((nextStep: number | null) => {
     const el = recruiterRef.current
@@ -390,7 +395,7 @@ export function Exploration() {
 
       // Set initial hidden states to animate them in cinematic timeline
       gsap.set(section, { opacity: 1 })
-      
+
       const isSecToSec = isSecToSecRef.current
       isSecToSecRef.current = false // Reset ref
 
@@ -661,107 +666,130 @@ export function Exploration() {
     const scrim = overlay?.firstElementChild as HTMLElement
     const links = mobileNavLinksRef.current.filter(Boolean)
 
+    // Kill existing timeline
+    if (mobileNavTlRef.current) {
+      mobileNavTlRef.current.kill()
+      mobileNavTlRef.current = null
+    }
+
+    const tl = gsap.timeline()
+    mobileNavTlRef.current = tl
+
     if (showMobileNav) {
       // Step 2: Pulse the morphing blob
       setPulse(true)
       gsap.delayedCall(0.3, () => setPulse(false))
 
+      // Disable pointer events on overlay and drawer during transition
+      tl.set([overlay, drawer], { pointerEvents: "none" }, 0)
+
       // Background retreat (entire app content)
       if (wrapper) {
-        gsap.killTweensOf(wrapper)
-        gsap.to(wrapper, {
+        tl.to(wrapper, {
           scale: 0.90,
           x: -80,
           opacity: 0.35,
           filter: "blur(18px)",
           WebkitFilter: "blur(18px)",
-          duration: 0.65,
+          duration: 0.32,
           ease: "power3.inOut"
-        })
+        }, 0)
       }
 
-      // Dimmed scrim opacity fade-in
+      // Dimmed scrim opacity fade-in (static blur)
       if (scrim) {
-        gsap.killTweensOf(scrim)
-        gsap.to(scrim, {
+        tl.fromTo(scrim, { opacity: 0 }, {
           opacity: 1,
-          pointerEvents: "auto",
-          duration: 0.45,
-          ease: "power2.out"
-        })
+          duration: 0.32,
+          ease: "power3.out"
+        }, 0)
       }
 
-      // Drawer panel slide-in
+      // Drawer panel slide-in (using GPU optimized transform)
       if (drawer) {
-        gsap.killTweensOf(drawer)
-        gsap.to(drawer, {
-          x: "0%",
-          pointerEvents: "auto",
-          duration: 0.55,
-          ease: "power4.out"
-        })
+        tl.fromTo(drawer,
+          { x: "100%", opacity: 0 },
+          {
+            x: "0%",
+            opacity: 1,
+            duration: 0.32,
+            ease: "power3.out", // Close equivalent to cubic-bezier(0.22, 1, 0.36, 1)
+            onComplete: () => {
+              gsap.set([overlay, drawer], { pointerEvents: "auto" })
+            }
+          },
+          0
+        )
       }
 
       // Floating navigation reveal (staggered links)
       if (links.length > 0) {
-        gsap.killTweensOf(links)
-        gsap.set(links, { opacity: 0, x: 40, filter: "blur(8px)", WebkitFilter: "blur(8px)" })
-        gsap.to(links, {
-          opacity: 1,
-          x: 0,
-          filter: "blur(0px)",
-          WebkitFilter: "blur(0px)",
-          duration: 0.55,
-          stagger: 0.06,
-          ease: "power4.out",
-          delay: 0.1
-        })
+        tl.fromTo(links,
+          { opacity: 0, x: 40, filter: "blur(8px)", WebkitFilter: "blur(8px)" },
+          {
+            opacity: 1,
+            x: 0,
+            filter: "blur(0px)",
+            WebkitFilter: "blur(0px)",
+            duration: 0.32,
+            stagger: 0.04,
+            ease: "power3.out"
+          },
+          0.05
+        )
       }
     } else {
+      // Disable pointer events on overlay and drawer during transition
+      tl.set([overlay, drawer], { pointerEvents: "none" }, 0)
+
       if (wrapper) {
-        gsap.killTweensOf(wrapper)
-        gsap.to(wrapper, {
+        tl.to(wrapper, {
           scale: 1,
           x: 0,
           opacity: 1,
           filter: "blur(0px)",
           WebkitFilter: "blur(0px)",
-          duration: 0.55,
+          duration: 0.32,
           ease: "power3.out"
-        })
+        }, 0)
       }
 
       if (scrim) {
-        gsap.killTweensOf(scrim)
-        gsap.to(scrim, {
+        tl.to(scrim, {
           opacity: 0,
-          pointerEvents: "none",
-          duration: 0.45,
-          ease: "power2.inOut"
-        })
+          duration: 0.32,
+          ease: "power3.in"
+        }, 0)
       }
 
       if (drawer) {
-        gsap.killTweensOf(drawer)
-        gsap.to(drawer, {
+        tl.to(drawer, {
           x: "100%",
-          pointerEvents: "none",
-          duration: 0.45,
-          ease: "power3.in"
-        })
+          opacity: 0,
+          duration: 0.32,
+          ease: "power3.in",
+          onComplete: () => {
+            gsap.set([overlay, drawer], { pointerEvents: "none" })
+          }
+        }, 0)
       }
 
       if (links.length > 0) {
-        gsap.killTweensOf(links)
-        gsap.to(links, {
+        tl.to(links, {
           opacity: 0,
           x: 40,
           filter: "blur(8px)",
           WebkitFilter: "blur(8px)",
-          duration: 0.35,
-          stagger: 0.04,
+          duration: 0.25,
+          stagger: 0.02,
           ease: "power3.in"
-        })
+        }, 0)
+      }
+    }
+
+    return () => {
+      if (mobileNavTlRef.current) {
+        mobileNavTlRef.current.kill()
       }
     }
   }, [showMobileNav, isMobile])
@@ -781,12 +809,77 @@ export function Exploration() {
 
   // escape key & command palette state & key down handlers
 
+  // Evaluate and evaluate section height and scrollability
+  useEffect(() => {
+    if (!active || !isMobile) {
+      setSectionNeedsScrolling(false)
+      return
+    }
+
+    const checkScrollable = () => {
+      if (!sectionRef.current) return
+      const needsScroll =
+        sectionRef.current.scrollHeight >
+        sectionRef.current.clientHeight + 40
+      setSectionNeedsScrolling(needsScroll)
+
+      // Rule 4: Run visibility checks immediately after scrollability is calculated
+      if (!needsScroll) {
+        setShowHomeButton(true)
+        setShowNavTrigger(true)
+      }
+    }
+
+    // Run using requestAnimationFrame
+    requestAnimationFrame(checkScrollable)
+
+    // Also run inside timeout to account for dynamic mounting delays
+    const timer = setTimeout(() => {
+      requestAnimationFrame(checkScrollable)
+    }, 100)
+
+    window.addEventListener("resize", checkScrollable)
+    return () => {
+      window.removeEventListener("resize", checkScrollable)
+      clearTimeout(timer)
+    }
+  }, [active, isMobile])
+
+  // Force button visibility on non-scrollable sections (Rule 1)
+  useEffect(() => {
+    if (active && isMobile && !sectionNeedsScrolling) {
+      setShowHomeButton(true)
+      setShowNavTrigger(true)
+    }
+  }, [active, isMobile, sectionNeedsScrolling])
+
   useEffect(() => {
     const element = sectionRef.current
     if (!element || !isMobile) return
 
     const handleScroll = () => {
+      // Guard scroll hides if section content doesn't need scrolling (Rule 5)
+      if (!sectionNeedsScrolling) {
+        setShowHomeButton(true)
+        setShowNavTrigger(true)
+        return
+      }
+
       const currentScrollY = element.scrollTop
+
+      // Scroll Direction Logic
+      const delta = currentScrollY - previousScrollYRef.current
+      const isScrollingUp = delta < -5
+      const isScrollingDown = delta > 5
+
+      if (isScrollingUp) {
+        setShowNavTrigger(true)
+      } else if (isScrollingDown) {
+        setShowNavTrigger(false)
+      }
+
+      previousScrollYRef.current = currentScrollY
+
       const isScrollUp = currentScrollY < lastScrollY.current
       const thresholdMet = currentScrollY > 250 || (isScrollUp && currentScrollY > 20)
 
@@ -814,9 +907,11 @@ export function Exploration() {
             const elapsed = Date.now() - lastAppearedTimeRef.current
             if (elapsed < 3000) {
               homeButtonTimerRef.current = setTimeout(() => {
+                if (!sectionNeedsScrolling) return
                 setShowHomeButton(false)
               }, 3000 - elapsed)
             } else {
+              if (!sectionNeedsScrolling) return
               setShowHomeButton(false)
             }
           }, 2500)
@@ -832,9 +927,11 @@ export function Exploration() {
             clearTimeout(homeButtonTimerRef.current)
           }
           homeButtonTimerRef.current = setTimeout(() => {
+            if (!sectionNeedsScrolling) return
             setShowHomeButton(false)
           }, 3000 - elapsed)
         } else {
+          if (!sectionNeedsScrolling) return
           setShowHomeButton(false)
           if (scrollDebounceTimerRef.current) {
             clearTimeout(scrollDebounceTimerRef.current)
@@ -859,10 +956,12 @@ export function Exploration() {
         clearTimeout(homeButtonTimerRef.current)
       }
     }
-  }, [active, isMobile, showHomeButton])
+  }, [active, isMobile, showHomeButton, sectionNeedsScrolling])
 
   useEffect(() => {
-    if (!active) {
+    if (active) {
+      setShowNavTrigger(true)
+    } else {
       setShowHomeButton(false)
       if (homeButtonTimerRef.current) {
         clearTimeout(homeButtonTimerRef.current)
@@ -874,6 +973,35 @@ export function Exploration() {
       }
     }
   }, [active])
+
+  // Rule 3: Define derived forceshow variables
+  const navVisible = !!active && isMobile && !showMobileNav && showNavTrigger
+
+  useEffect(() => {
+    const el = chevronRef.current
+    if (!el || !isMobile) return
+
+    gsap.killTweensOf(el)
+
+    // Rule 3: Use navVisible for visibility transitions
+    if (navVisible) {
+      gsap.to(el, {
+        opacity: 1,
+        x: 0,
+        duration: duration(0.45),
+        ease: "power3.out",
+        pointerEvents: "auto"
+      })
+    } else {
+      gsap.to(el, {
+        opacity: 0,
+        x: 30,
+        duration: duration(0.3),
+        ease: "power2.in",
+        pointerEvents: "none"
+      })
+    }
+  }, [navVisible, duration, isMobile])
 
   const [showPalette, setShowPalette] = useState(false)
   const [paletteSearch, setPaletteSearch] = useState("")
@@ -1017,12 +1145,12 @@ export function Exploration() {
           togglePalette(false)
         } else if (e.key === "ArrowDown") {
           e.preventDefault()
-          setSelectedPaletteIdx(prev => 
+          setSelectedPaletteIdx(prev =>
             filteredCommands.length > 0 ? (prev + 1) % filteredCommands.length : 0
           )
         } else if (e.key === "ArrowUp") {
           e.preventDefault()
-          setSelectedPaletteIdx(prev => 
+          setSelectedPaletteIdx(prev =>
             filteredCommands.length > 0 ? (prev - 1 + filteredCommands.length) % filteredCommands.length : 0
           )
         } else if (e.key === "Enter") {
@@ -1060,283 +1188,283 @@ export function Exploration() {
         {/* Three.js blob — always rendered, shifts on section open */}
         <MorphingBlob sectionMode={!!active} hoverActive={showName || pulse} reducedMotion={reducedMotion} />
 
-      {/* ── TOP LEFT ──────────────────────────────────────────────────────── */}
-      {!isMobile && (
-        <header
-          className="z-20 px-6 py-6 sm:px-10 sm:py-8 flex flex-col items-start gap-3"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            transform: isMobile && !mobileHeaderVisible ? "translateY(-100%)" : "translateY(0)",
-            transition: isMobile ? "transform 250ms cubic-bezier(0.25, 1, 0.5, 1)" : "none",
-            backgroundColor: isMobile && active ? "var(--bg-color, #0c0908)" : "transparent",
-            pointerEvents: "none",
-          }}
-          suppressHydrationWarning
-        >
-          <div className="flex flex-col items-start gap-1.5 w-full pointer-events-auto">
-            <div className="flex items-center justify-between w-full">
-              <button
-                onClick={active ? closeSection : undefined}
-                className="flex items-center gap-2 rounded-full px-3 py-1 text-left"
-                style={{
-                  border: "1px solid var(--border-color-medium, rgba(245,230,211,0.25))",
-                  cursor: active ? "pointer" : "default",
-                }}
-                suppressHydrationWarning
-              >
-                <span style={{ ...MONO, color: "var(--text-color, #F5E6D3)", fontSize: 11, letterSpacing: "0.2em" }}>
-                  {IDENTITY.name}
+        {/* ── TOP LEFT ──────────────────────────────────────────────────────── */}
+        {!isMobile && (
+          <header
+            className="z-20 px-6 py-6 sm:px-10 sm:py-8 flex flex-col items-start gap-3"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              transform: isMobile && !mobileHeaderVisible ? "translateY(-100%)" : "translateY(0)",
+              transition: isMobile ? "transform 250ms cubic-bezier(0.25, 1, 0.5, 1)" : "none",
+              backgroundColor: isMobile && active ? "var(--bg-color, #0c0908)" : "transparent",
+              pointerEvents: "none",
+            }}
+            suppressHydrationWarning
+          >
+            <div className="flex flex-col items-start gap-1.5 w-full pointer-events-auto">
+              <div className="flex items-center justify-between w-full">
+                <button
+                  onClick={active ? closeSection : undefined}
+                  className="flex items-center gap-2 rounded-full px-3 py-1 text-left"
+                  style={{
+                    border: "1px solid var(--border-color-medium, rgba(245,230,211,0.25))",
+                    cursor: active ? "pointer" : "default",
+                  }}
+                  suppressHydrationWarning
+                >
+                  <span style={{ ...MONO, color: "var(--text-color, #F5E6D3)", fontSize: 11, letterSpacing: "0.2em" }}>
+                    {IDENTITY.name}
+                  </span>
+                </button>
+              </div>
+              <span style={{ ...MONO, color: "var(--text-secondary, rgba(245,230,211,0.4))", fontSize: 10, letterSpacing: "0.25em" }}>
+                {IDENTITY.status}
+              </span>
+              <div className="flex items-center gap-2">
+                <span style={{ ...MONO, color: "var(--text-secondary, rgba(245,230,211,0.4))", fontSize: 10, letterSpacing: "0.25em" }}>
+                  STATUS:
                 </span>
-              </button>
+                <span style={{ ...MONO, color: "var(--text-secondary, rgba(245,230,211,0.4))", fontSize: 10, letterSpacing: "0.25em" }}>
+                  {IDENTITY.mode}
+                </span>
+              </div>
             </div>
-            <span style={{ ...MONO, color: "var(--text-secondary, rgba(245,230,211,0.4))", fontSize: 10, letterSpacing: "0.25em" }}>
-              {IDENTITY.status}
-            </span>
-            <div className="flex items-center gap-2">
-              <span style={{ ...MONO, color: "var(--text-secondary, rgba(245,230,211,0.4))", fontSize: 10, letterSpacing: "0.25em" }}>
-                STATUS:
-              </span>
-              <span style={{ ...MONO, color: "var(--text-secondary, rgba(245,230,211,0.4))", fontSize: 10, letterSpacing: "0.25em" }}>
-                {IDENTITY.mode}
-              </span>
-            </div>
-          </div>
-          {active && (
-            <button
-              onClick={closeSection}
-              className="return-to-center flex items-center gap-1.5 transition-colors pointer-events-auto"
-              style={{
-                ...MONO,
-                fontSize: 10,
-                letterSpacing: "0.25em",
-                color: TEXT_SECONDARY,
-                cursor: "pointer",
-                marginTop: "-4px"
-              }}
-              onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = TEXT_PRIMARY)}
-              onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = TEXT_SECONDARY)}
-            >
-              <span>←</span> RETURN TO CENTER
-            </button>
-          )}
-        </header>
-      )}
-
-      {/* ── TOP RIGHT ─────────────────────────────────────────────────────── */}
-      {!isMobile && (
-        <div 
-          className={`absolute right-0 top-0 z-20 flex flex-col items-end gap-3 px-6 py-6 sm:px-10 sm:py-8 ${active && isMobile ? "hidden" : ""}`}
-          suppressHydrationWarning
-        >
-          {!isMobile && (
-            <button
-              onClick={() => handleRecruiterNav(0)}
-              className="rounded-full border px-3 py-1 text-[9px] uppercase tracking-[0.2em] transition-colors"
-              style={{
-                ...MONO,
-                borderColor: "var(--border-color-medium, rgba(245,230,211,0.2))",
-                color: "var(--text-color, #F5E6D3)",
-                backgroundColor: "transparent",
-                cursor: "pointer",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = ACCENT
-                e.currentTarget.style.color = ACCENT
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = "var(--border-color-medium, rgba(245,230,211,0.2))"
-                e.currentTarget.style.color = "var(--text-color, #F5E6D3)"
-              }}
-              suppressHydrationWarning
-            >
-              Recruiter Mode
-            </button>
-          )}
-          <div className="hidden flex-col items-end gap-1 sm:flex" suppressHydrationWarning>
-            {IDENTITY.meta.map((m) => (
-              <span key={m.label} style={{ ...MONO, color: "var(--text-secondary, rgba(245,230,211,0.4))", fontSize: 10, letterSpacing: "0.25em" }} suppressHydrationWarning>
-                {m.label}:{" "}
-                <span style={{ color: "var(--text-color, #F5E6D3)" }} suppressHydrationWarning>{m.value}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* ── RIGHT NAV (visible only in Identity Mode) ─────────────────────── */}
-      <nav
-        ref={rightNavRef}
-        className="absolute right-6 top-1/2 z-20 hidden -translate-y-1/2 flex-col items-end gap-5 sm:flex sm:right-10"
-        style={{ opacity: 0 }}
-        suppressHydrationWarning
-      >
-        {CHAPTERS.map((c) => {
-          const isActive = c.id === active
-          return (
-            <button
-              key={c.id}
-              onClick={() => isActive ? closeSection() : openSection(c.id)}
-              className="flex items-center gap-2.5 transition-opacity"
-              style={{ opacity: isActive ? 1 : 0.5 }}
-              onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-              onMouseLeave={(e) => (e.currentTarget.style.opacity = isActive ? "1" : "0.5")}
-            >
-              <span style={{
-                ...MONO,
-                fontSize: 11,
-                letterSpacing: "0.25em",
-                color: isActive ? ACCENT : TEXT_PRIMARY,
-                transition: "color 0.2s",
-              }}>
-                {c.nav}
-              </span>
-              <span
-                className="rounded-full transition-all"
-                style={{
-                  width: isActive ? 7 : 4,
-                  height: isActive ? 7 : 4,
-                  backgroundColor: isActive ? ACCENT : "rgba(245,230,211,0.3)",
-                  transition: "all 0.3s",
-                }}
-              />
-            </button>
-          )
-        })}
-      </nav>
-
-
-
-      {/* ── BOTTOM LEFT ───────────────────────────────────────────────────── */}
-      <div className="absolute bottom-0 left-0 z-20 hidden px-6 py-6 sm:block sm:px-10 sm:py-8">
-        <Timer startTime={startTime} />
-      </div>
-
-      {/* ── BOTTOM RIGHT ──────────────────────────────────────────────────── */}
-      <div className="absolute bottom-0 right-0 z-20 hidden px-6 py-6 sm:flex sm:px-10 sm:py-8">
-        <div className="flex items-center gap-2">
-          {IDENTITY.links.map((link, i) => (
-            <span key={link.label} className="flex items-center gap-2">
-              <a
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
+            {active && (
+              <button
+                onClick={closeSection}
+                className="return-to-center flex items-center gap-1.5 transition-colors pointer-events-auto"
                 style={{
                   ...MONO,
                   fontSize: 10,
                   letterSpacing: "0.25em",
                   color: TEXT_SECONDARY,
-                  textDecoration: "none",
-                  transition: "color 0.2s",
+                  cursor: "pointer",
+                  marginTop: "-4px"
                 }}
-                onMouseEnter={(e) => ((e.target as HTMLAnchorElement).style.color = TEXT_PRIMARY)}
-                onMouseLeave={(e) => ((e.target as HTMLAnchorElement).style.color = TEXT_SECONDARY)}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = TEXT_PRIMARY)}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = TEXT_SECONDARY)}
               >
-                {link.label}
-              </a>
-              {i < IDENTITY.links.length - 1 && (
-                <span style={{ color: "rgba(245,230,211,0.2)", ...MONO, fontSize: 10 }}>/</span>
-              )}
-            </span>
-          ))}
-        </div>
-      </div>
+                <span>←</span> RETURN TO CENTER
+              </button>
+            )}
+          </header>
+        )}
 
-      {/* ── IDENTITY INTERACTION ZONE ────────────────────────────────────── */}
-      {/* Invisible centered region that covers PRAYAS KAR, the blob, and the
-          chapter labels. Identity Mode opens on enter, closes on leave. */}
-      {!active && !showMobileNav && (
-        <div
-          ref={identityZoneRef}
-          className="absolute inset-0 z-10"
-          onMouseEnter={handleZoneEnter}
-          onMouseLeave={handleZoneLeave}
-        >
-          {/* ── HERO STATE ──────────────────────────────────────────────── */}
+        {/* ── TOP RIGHT ─────────────────────────────────────────────────────── */}
+        {!isMobile && (
           <div
-            ref={heroRef}
-            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
+            className={`absolute right-0 top-0 z-20 flex flex-col items-end gap-3 px-6 py-6 sm:px-10 sm:py-8 ${active && isMobile ? "hidden" : ""}`}
+            suppressHydrationWarning
           >
-            <span
-              style={{
-                ...MONO,
-                color: TEXT_SECONDARY,
-                fontSize: 10,
-                letterSpacing: "0.4em",
-                marginBottom: 16,
-                opacity: isMobile && showName ? 0 : 1,
-                transition: isMobile ? "opacity 250ms cubic-bezier(0.25, 1, 0.5, 1)" : "none",
-              }}
-            >
-              CURRENT STATE
-            </span>
-            {/* crossfade wrapper */}
-            <div className="relative" style={{ height: "clamp(3.5rem, 12vw, 9rem)" }}>
-              <h1
-                className="relative h-full flex items-center justify-center text-center leading-none select-none pointer-events-auto"
+            {!isMobile && (
+              <button
+                onClick={() => handleRecruiterNav(0)}
+                className="rounded-full border px-3 py-1 text-[9px] uppercase tracking-[0.2em] transition-colors"
                 style={{
-                  ...SERIF,
-                  fontSize: "clamp(3rem, 11vw, 8.5rem)",
-                  color: TEXT_PRIMARY,
-                  fontStyle: "italic",
-                  whiteSpace: "nowrap",
+                  ...MONO,
+                  borderColor: "var(--border-color-medium, rgba(245,230,211,0.2))",
+                  color: "var(--text-color, #F5E6D3)",
+                  backgroundColor: "transparent",
                   cursor: "pointer",
                 }}
-                onMouseEnter={handleMouseEnter}
-                onClick={() => {
-                  if (isMobile) {
-                    if (showName) {
-                      setShowName(false)
-                      startWordRotation()
-                    } else {
-                      if (rotationTlRef.current) {
-                        rotationTlRef.current.kill()
-                        rotationTlRef.current = null
-                      }
-                      setShowName(true)
-                    }
-                  }
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = ACCENT
+                  e.currentTarget.style.color = ACCENT
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "var(--border-color-medium, rgba(245,230,211,0.2))"
+                  e.currentTarget.style.color = "var(--text-color, #F5E6D3)"
+                }}
+                suppressHydrationWarning
+              >
+                Recruiter Mode
+              </button>
+            )}
+            <div className="hidden flex-col items-end gap-1 sm:flex" suppressHydrationWarning>
+              {IDENTITY.meta.map((m) => (
+                <span key={m.label} style={{ ...MONO, color: "var(--text-secondary, rgba(245,230,211,0.4))", fontSize: 10, letterSpacing: "0.25em" }} suppressHydrationWarning>
+                  {m.label}:{" "}
+                  <span style={{ color: "var(--text-color, #F5E6D3)" }} suppressHydrationWarning>{m.value}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── RIGHT NAV (visible only in Identity Mode) ─────────────────────── */}
+        <nav
+          ref={rightNavRef}
+          className="absolute right-6 top-1/2 z-20 hidden -translate-y-1/2 flex-col items-end gap-5 sm:flex sm:right-10"
+          style={{ opacity: 0 }}
+          suppressHydrationWarning
+        >
+          {CHAPTERS.map((c) => {
+            const isActive = c.id === active
+            return (
+              <button
+                key={c.id}
+                onClick={() => isActive ? closeSection() : openSection(c.id)}
+                className="flex items-center gap-2.5 transition-opacity"
+                style={{ opacity: isActive ? 1 : 0.5 }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = isActive ? "1" : "0.5")}
+              >
+                <span style={{
+                  ...MONO,
+                  fontSize: 11,
+                  letterSpacing: "0.25em",
+                  color: isActive ? ACCENT : TEXT_PRIMARY,
+                  transition: "color 0.2s",
+                }}>
+                  {c.nav}
+                </span>
+                <span
+                  className="rounded-full transition-all"
+                  style={{
+                    width: isActive ? 7 : 4,
+                    height: isActive ? 7 : 4,
+                    backgroundColor: isActive ? ACCENT : "rgba(245,230,211,0.3)",
+                    transition: "all 0.3s",
+                  }}
+                />
+              </button>
+            )
+          })}
+        </nav>
+
+
+
+        {/* ── BOTTOM LEFT ───────────────────────────────────────────────────── */}
+        <div className="absolute bottom-0 left-0 z-20 hidden px-6 py-6 sm:block sm:px-10 sm:py-8">
+          <Timer startTime={startTime} />
+        </div>
+
+        {/* ── BOTTOM RIGHT ──────────────────────────────────────────────────── */}
+        <div className="absolute bottom-0 right-0 z-20 hidden px-6 py-6 sm:flex sm:px-10 sm:py-8">
+          <div className="flex items-center gap-2">
+            {IDENTITY.links.map((link, i) => (
+              <span key={link.label} className="flex items-center gap-2">
+                <a
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    ...MONO,
+                    fontSize: 10,
+                    letterSpacing: "0.25em",
+                    color: TEXT_SECONDARY,
+                    textDecoration: "none",
+                    transition: "color 0.2s",
+                  }}
+                  onMouseEnter={(e) => ((e.target as HTMLAnchorElement).style.color = TEXT_PRIMARY)}
+                  onMouseLeave={(e) => ((e.target as HTMLAnchorElement).style.color = TEXT_SECONDARY)}
+                >
+                  {link.label}
+                </a>
+                {i < IDENTITY.links.length - 1 && (
+                  <span style={{ color: "rgba(245,230,211,0.2)", ...MONO, fontSize: 10 }}>/</span>
+                )}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* ── IDENTITY INTERACTION ZONE ────────────────────────────────────── */}
+        {/* Invisible centered region that covers PRAYAS KAR, the blob, and the
+          chapter labels. Identity Mode opens on enter, closes on leave. */}
+        {!active && !showMobileNav && (
+          <div
+            ref={identityZoneRef}
+            className="absolute inset-0 z-10"
+            onMouseEnter={handleZoneEnter}
+            onMouseLeave={handleZoneLeave}
+          >
+            {/* ── HERO STATE ──────────────────────────────────────────────── */}
+            <div
+              ref={heroRef}
+              className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center"
+            >
+              <span
+                style={{
+                  ...MONO,
+                  color: TEXT_SECONDARY,
+                  fontSize: 10,
+                  letterSpacing: "0.4em",
+                  marginBottom: 16,
+                  opacity: isMobile && showName ? 0 : 1,
+                  transition: isMobile ? "opacity 250ms cubic-bezier(0.25, 1, 0.5, 1)" : "none",
                 }}
               >
-                <span
-                  ref={nameWrapperRef}
-                  className="absolute flex items-center justify-center font-bold"
-                  style={{ opacity: 0, pointerEvents: "none" }}
-                >
-                  {"PRAYAS KAR".split("").map((char, index) => {
-                    if (char === " ") {
-                      return <span key={index}>&nbsp;</span>
+                CURRENT STATE
+              </span>
+              {/* crossfade wrapper */}
+              <div className="relative" style={{ height: "clamp(3.5rem, 12vw, 9rem)" }}>
+                <h1
+                  className="relative h-full flex items-center justify-center text-center leading-none select-none pointer-events-auto"
+                  style={{
+                    ...SERIF,
+                    fontSize: "clamp(3rem, 11vw, 8.5rem)",
+                    color: TEXT_PRIMARY,
+                    fontStyle: "italic",
+                    whiteSpace: "nowrap",
+                    cursor: "pointer",
+                  }}
+                  onMouseEnter={handleMouseEnter}
+                  onClick={() => {
+                    if (isMobile) {
+                      if (showName) {
+                        setShowName(false)
+                        startWordRotation()
+                      } else {
+                        if (rotationTlRef.current) {
+                          rotationTlRef.current.kill()
+                          rotationTlRef.current = null
+                        }
+                        setShowName(true)
+                      }
                     }
-                    return (
-                      <span
-                        key={index}
-                        className="hero-letter inline-block"
-                        style={{
-                          opacity: 0,
-                          transform: index % 2 === 0 ? "translateY(-60px)" : "translateY(60px)",
-                        }}
-                      >
-                        {char}
-                      </span>
-                    )
-                  })}
-                </span>
-                <span
-                  ref={wordRef}
-                  className="inline-block"
-                  style={{ opacity: 1, pointerEvents: "auto" }}
+                  }}
                 >
-                  {STATES[stateIdx]}
-                </span>
-              </h1>
-            </div>
+                  <span
+                    ref={nameWrapperRef}
+                    className="absolute flex items-center justify-center font-bold"
+                    style={{ opacity: 0, pointerEvents: "none" }}
+                  >
+                    {"PRAYAS KAR".split("").map((char, index) => {
+                      if (char === " ") {
+                        return <span key={index}>&nbsp;</span>
+                      }
+                      return (
+                        <span
+                          key={index}
+                          className="hero-letter inline-block"
+                          style={{
+                            opacity: 0,
+                            transform: index % 2 === 0 ? "translateY(-60px)" : "translateY(60px)",
+                          }}
+                        >
+                          {char}
+                        </span>
+                      )
+                    })}
+                  </span>
+                  <span
+                    ref={wordRef}
+                    className="inline-block"
+                    style={{ opacity: 1, pointerEvents: "auto" }}
+                  >
+                    {STATES[stateIdx]}
+                  </span>
+                </h1>
+              </div>
 
-            {/* Explore Cue */}
-            {isMobile && active === null && !showMobileNav && recruiterStep === null && showCue && (
-              <>
-                <style>{`
+              {/* Explore Cue */}
+              {isMobile && active === null && !showMobileNav && recruiterStep === null && showCue && (
+                <>
+                  <style>{`
                   @keyframes exploreCueAnimation {
                     0% { opacity: 0.55; }
                     50% { opacity: 0.85; }
@@ -1351,93 +1479,103 @@ export function Exploration() {
                     opacity: 0 !important;
                   }
                 `}</style>
-                <div
-                  className={`explore-cue-animating ${showName ? "explore-cue-hidden" : ""} pointer-events-none select-none`}
-                  style={{
-                    ...MONO,
-                    fontSize: "11px",
-                    fontWeight: 400,
-                    letterSpacing: "0.1em",
-                    color: TEXT_SECONDARY,
-                    textAlign: "center",
-                    marginTop: "24px",
-                  }}
-                >
-                  • Tap to enter
-                </div>
-              </>
+                  <div
+                    className={`explore-cue-animating ${showName ? "explore-cue-hidden" : ""} pointer-events-none select-none`}
+                    style={{
+                      ...MONO,
+                      fontSize: "11px",
+                      fontWeight: 400,
+                      letterSpacing: "0.1em",
+                      color: TEXT_SECONDARY,
+                      textAlign: "center",
+                      marginTop: "24px",
+                    }}
+                  >
+                    • Tap to enter
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* ── IDENTITY MODE LABELS (visible during PRAYAS KAR hover) ─────── */}
+            {showName && (
+              <div className="absolute inset-0">
+                {CHAPTERS.map((c, i) => {
+                  // Position: ORIGIN top, FRICTION top-left, ALIGNMENT top-right,
+                  //          WORK bottom-left, RESONANCE bottom-right (5 labels)
+                  const positionStyles: React.CSSProperties[] = isMobile ? [
+                    { top: "24%", left: "50%", transform: "translateX(-50%)" }, // ORIGIN
+                    { top: "42%", left: "14%" },                                  // FRICTION
+                    { top: "42%", right: "14%", textAlign: "right" } as React.CSSProperties, // ALIGNMENT
+                    { bottom: "28%", left: "14%" },                              // WORK
+                    { bottom: "28%", right: "14%", textAlign: "right" } as React.CSSProperties, // RESONANCE
+                  ] : [
+                    { top: "18%", left: "50%", transform: "translateX(-50%)" }, // ORIGIN
+                    { top: "40%", left: "8%" },                                  // FRICTION
+                    { top: "40%", right: "8%", textAlign: "right" } as React.CSSProperties, // ALIGNMENT
+                    { bottom: "22%", left: "8%" },                              // WORK
+                    { bottom: "22%", right: "8%", textAlign: "right" } as React.CSSProperties, // RESONANCE
+                  ]
+                  return (
+                    <button
+                      key={c.id}
+                      ref={(el) => { identityLabelsRef.current[i] = el }}
+                      className="absolute cursor-pointer bg-transparent border-none p-0 outline-none"
+                      style={{ ...MONO, ...positionStyles[i], color: TEXT_PRIMARY, fontSize: 11, letterSpacing: "0.3em", transition: "color 0.2s ease", pointerEvents: "auto" }}
+                      onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = ACCENT)}
+                      onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = TEXT_PRIMARY)}
+                      onClick={() => openSection(c.id)}
+                    >
+                      {c.nav}
+                    </button>
+                  )
+                })}
+              </div>
             )}
           </div>
+        )}
 
-          {/* ── IDENTITY MODE LABELS (visible during PRAYAS KAR hover) ─────── */}
-          {showName && (
-            <div className="absolute inset-0">
-              {CHAPTERS.map((c, i) => {
-                // Position: ORIGIN top, FRICTION top-left, ALIGNMENT top-right,
-                //          WORK bottom-left, RESONANCE bottom-right (5 labels)
-                const positionStyles: React.CSSProperties[] = isMobile ? [
-                  { top: "24%", left: "50%", transform: "translateX(-50%)" }, // ORIGIN
-                  { top: "42%", left: "14%" },                                  // FRICTION
-                  { top: "42%", right: "14%", textAlign: "right" } as React.CSSProperties, // ALIGNMENT
-                  { bottom: "28%", left: "14%" },                              // WORK
-                  { bottom: "28%", right: "14%", textAlign: "right" } as React.CSSProperties, // RESONANCE
-                ] : [
-                  { top: "18%", left: "50%", transform: "translateX(-50%)" }, // ORIGIN
-                  { top: "40%", left: "8%" },                                  // FRICTION
-                  { top: "40%", right: "8%", textAlign: "right" } as React.CSSProperties, // ALIGNMENT
-                  { bottom: "22%", left: "8%" },                              // WORK
-                  { bottom: "22%", right: "8%", textAlign: "right" } as React.CSSProperties, // RESONANCE
-                ]
-                return (
-                  <button
-                    key={c.id}
-                    ref={(el) => { identityLabelsRef.current[i] = el }}
-                    className="absolute cursor-pointer bg-transparent border-none p-0 outline-none"
-                    style={{ ...MONO, ...positionStyles[i], color: TEXT_PRIMARY, fontSize: 11, letterSpacing: "0.3em", transition: "color 0.2s ease", pointerEvents: "auto" }}
-                    onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = ACCENT)}
-                    onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = TEXT_PRIMARY)}
-                    onClick={() => openSection(c.id)}
-                  >
-                    {c.nav}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── SECTION CONTENT ───────────────────────────────────────────────── */}
-      {active && activeChapter && (
-        <div
-          ref={sectionRef}
-          className="absolute inset-0 z-10 overflow-y-auto"
-          style={{ opacity: 0 }}
-        >
-
-          {/* chapter content area — positioned right-of-center, clear of blob */}
+        {/* ── SECTION CONTENT ───────────────────────────────────────────────── */}
+        {active && activeChapter && (
           <div
-            className="flex min-h-full flex-col px-6 pt-20 pb-[calc(9rem+env(safe-area-inset-bottom))] sm:pb-24 sm:pl-[clamp(2.5rem,32vw,24rem)] sm:pr-12 sm:pt-40 sm:mx-auto"
-            style={{ maxWidth: 1000 }}
+            ref={sectionRef}
+            className="absolute inset-0 z-10 overflow-y-auto"
+            style={{ opacity: 0 }}
           >
-            <div style={{ maxWidth: 620 }}>
-              <h2
-                className="mb-8 italic leading-none"
+
+            {/* chapter content area — positioned right-of-center, clear of blob */}
+            <div
+              className="flex min-h-full flex-col px-6 pt-20 pb-[calc(9rem+env(safe-area-inset-bottom))] sm:pb-24 sm:pl-[clamp(2.5rem,32vw,24rem)] sm:pr-12 sm:pt-40 sm:mx-auto"
+              style={{ maxWidth: 1000 }}
+            >
+              <div
                 style={{
-                  ...SERIF,
-                  fontSize: isMobile
-                    ? "clamp(1.75rem, 5vw, 2.5rem)"
-                    : "clamp(2rem, 5vw, 3.5rem)",
-                  color: ACCENT,
+                  maxWidth: 620,
+                  backgroundColor: isMobile ? "rgba(231, 221, 208, 0.68)" : "transparent",
+                  backdropFilter: isMobile ? "blur(8px)" : "none",
+                  WebkitBackdropFilter: isMobile ? "blur(8px)" : "none",
+                  padding: isMobile ? "24px" : "0px",
+                  borderRadius: isMobile ? "16px" : "0px",
+                  border: isMobile ? "1px solid rgba(255, 255, 255, 0.12)" : "none",
                 }}
               >
-                {activeChapter.title}
-              </h2>
-              <SectionContent content={activeChapter.content} onCopyEmail={copyEmailToClipboard} />
+                <h2
+                  className="mb-8 italic leading-none"
+                  style={{
+                    ...SERIF,
+                    fontSize: isMobile
+                      ? "clamp(1.75rem, 5vw, 2.5rem)"
+                      : "clamp(2rem, 5vw, 3.5rem)",
+                    color: ACCENT,
+                  }}
+                >
+                  {activeChapter.title}
+                </h2>
+                <SectionContent content={activeChapter.content} onCopyEmail={copyEmailToClipboard} />
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
 
       {/* ── RECRUITER MODE OVERLAY ────────────────────────────────────────── */}
@@ -1460,13 +1598,38 @@ export function Exploration() {
                 boxShadow: active ? "0 20px 50px rgba(0,0,0,0.15)" : "0 20px 50px rgba(0,0,0,0.6)"
               }}
             >
-              <div className="flex items-center justify-between">
-                <span style={{ ...MONO, color: ACCENT, fontSize: 10, letterSpacing: "0.25em" }}>
+              <div
+                className="flex items-center justify-between"
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: "12px",
+                  width: "100%"
+                }}
+              >
+                <span
+                  style={{
+                    ...MONO,
+                    color: ACCENT,
+                    fontSize: isMobile ? 8 : 10,
+                    letterSpacing: isMobile ? "0.15em" : "0.25em",
+                    whiteSpace: "nowrap",
+                    minWidth: 0,
+                    flexShrink: 1
+                  }}
+                >
                   RECRUITER_GUIDE // STEP {recruiterStep + 1} OF {slides.length}
                 </span>
                 <button
                   onClick={() => handleRecruiterNav(null)}
-                  style={{ ...MONO, color: "var(--text-secondary)", fontSize: 10, letterSpacing: "0.2em" }}
+                  style={{
+                    ...MONO,
+                    color: "var(--text-secondary)",
+                    fontSize: isMobile ? 8 : 10,
+                    letterSpacing: isMobile ? "0.15em" : "0.2em",
+                    flexShrink: 0
+                  }}
                   className="transition-colors"
                   onMouseEnter={(e) => {
                     e.currentTarget.style.color = ACCENT
@@ -1486,7 +1649,7 @@ export function Exploration() {
                 >
                   {currentSlide.title}
                 </h2>
-                
+
                 <p
                   style={{ ...MONO, color: "var(--text-color)", fontSize: 12, lineHeight: "1.6" }}
                   className="whitespace-pre-line text-left"
@@ -1597,7 +1760,7 @@ export function Exploration() {
                       aria-selected={isSelected}
                       className="flex items-center justify-between px-5 py-3 cursor-pointer transition-all duration-150"
                       style={{
-                        backgroundColor: isSelected 
+                        backgroundColor: isSelected
                           ? (active ? "rgba(17, 17, 17, 0.06)" : "rgba(245, 230, 211, 0.06)")
                           : "transparent"
                       }}
@@ -1648,11 +1811,10 @@ export function Exploration() {
             className="absolute inset-0"
             style={{
               backgroundColor: "rgba(12, 9, 8, 0.45)",
-              backdropFilter: "blur(4px)",
-              WebkitBackdropFilter: "blur(4px)",
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
               opacity: 0,
               pointerEvents: "none",
-              transition: "opacity 0.45s cubic-bezier(0.25, 1, 0.5, 1)",
             }}
             onClick={() => setShowMobileNav(false)}
           />
@@ -1665,12 +1827,15 @@ export function Exploration() {
               width: "min(80vw, 340px)",
               backgroundColor: active ? "rgba(245, 230, 211, 0.98)" : "rgba(12, 9, 8, 0.98)",
               borderColor: "var(--border-color-medium, rgba(245, 230, 211, 0.2))",
-              transform: "translateX(100%)",
+              transform: "translateX(100%) translateZ(0)",
               pointerEvents: "none",
               paddingTop: "calc(40px + env(safe-area-inset-top))",
               paddingBottom: "calc(40px + env(safe-area-inset-bottom))",
               paddingLeft: "40px",
               paddingRight: "calc(40px + env(safe-area-inset-right))",
+              willChange: "transform",
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
             }}
           >
             {/* Close button at top right of the drawer */}
@@ -1772,6 +1937,23 @@ export function Exploration() {
                 }}
               />
 
+              {/* External Section Header */}
+              <span
+                style={{
+                  ...MONO,
+                  fontSize: 10,
+                  letterSpacing: "0.25em",
+                  color: "var(--text-secondary, rgba(245, 230, 211, 0.4))",
+                  textTransform: "uppercase",
+                  opacity: 0.5,
+                  marginBottom: "8px",
+                  marginTop: "4px"
+                }}
+                suppressHydrationWarning
+              >
+                EXTERNAL
+              </span>
+
               {/* Secondary Navigation Group */}
               <a
                 ref={(el) => { if (el) mobileNavLinksRef.current[CHAPTERS.length] = el }}
@@ -1856,6 +2038,73 @@ export function Exploration() {
               >
                 LINKEDIN →
               </a>
+
+              {/* Divider with slightly larger spacing above it */}
+              <div
+                style={{
+                  height: "1px",
+                  width: "100%",
+                  backgroundColor: "var(--border-color, rgba(245, 230, 211, 0.15))",
+                  opacity: 0.25,
+                  marginTop: "20px",
+                  marginBottom: "8px",
+                }}
+              />
+
+              {/* Recruiter Section Header */}
+              <span
+                style={{
+                  ...MONO,
+                  fontSize: 10,
+                  letterSpacing: "0.25em",
+                  color: "var(--text-secondary, rgba(245, 230, 211, 0.4))",
+                  textTransform: "uppercase",
+                  opacity: 0.5,
+                  marginBottom: "8px",
+                  marginTop: "4px"
+                }}
+                suppressHydrationWarning
+              >
+                RECRUITER
+              </span>
+
+              <button
+                ref={(el) => { if (el) mobileNavLinksRef.current[CHAPTERS.length + 3] = el }}
+                onClick={() => {
+                  setShowMobileNav(false)
+                  handleRecruiterNav(0)
+                }}
+                className="bg-transparent border-none p-0 outline-none flex items-center text-left"
+                style={{
+                  cursor: "pointer",
+                  pointerEvents: "auto",
+                  borderLeft: "2px solid transparent",
+                  paddingLeft: "0px",
+                  paddingTop: "11px",
+                  paddingBottom: "11px",
+                  opacity: 0.9,
+                  transition: "opacity 150ms cubic-bezier(0.25, 1, 0.5, 1)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = "1.0"
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = "0.9"
+                }}
+                suppressHydrationWarning
+              >
+                <span
+                  style={{
+                    ...MONO,
+                    fontSize: 15,
+                    fontWeight: 600,
+                    letterSpacing: "0.25em",
+                    color: "var(--text-color, #F5E6D3)",
+                  }}
+                >
+                  RECRUITER MODE &rarr;
+                </span>
+              </button>
             </div>
           </aside>
         </div>
@@ -1872,21 +2121,28 @@ export function Exploration() {
             height: 44,
             top: "calc(20px + env(safe-area-inset-top))",
             right: "calc(20px + env(safe-area-inset-right))",
-            opacity: showMobileNav ? 0 : 0.5,
-            pointerEvents: showMobileNav ? "none" : "auto",
-            fontSize: 36,
-            color: "var(--text-color, #F5E6D3)",
             backgroundColor: "transparent",
             border: "none",
             cursor: "pointer",
             outline: "none",
-            fontFamily: "var(--font-ibm-mono), 'Courier New', monospace",
-            transition: "opacity 150ms cubic-bezier(0.25, 1, 0.5, 1)",
+            opacity: 0,
+            transform: "translateX(30px)",
+            pointerEvents: "none",
           }}
-          onMouseEnter={(e) => { if (!showMobileNav) e.currentTarget.style.opacity = "1" }}
-          onMouseLeave={(e) => { if (!showMobileNav) e.currentTarget.style.opacity = "0.5" }}
+          suppressHydrationWarning
         >
-          〈
+          <span
+            style={{
+              display: "inline-block",
+              fontSize: "36px",
+              fontWeight: 200,
+              lineHeight: 1,
+              color: "var(--text-color, #F5E6D3)",
+              fontFamily: "var(--font-ibm-mono), 'Courier New', monospace",
+            }}
+          >
+            〈
+          </span>
         </button>
       )}
       {isMobile && (
