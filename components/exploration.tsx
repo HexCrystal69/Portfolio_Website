@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react"
 import { gsap } from "gsap"
-import { CHAPTERS, IDENTITY, STATES, type ChapterId } from "@/lib/portrait"
+import { GMAIL_COMPOSE_URL, CHAPTERS, IDENTITY, STATES, type ChapterId } from "@/lib/portrait"
 import { MorphingBlob } from "./morphing-blob"
 import { SectionContent } from "./sections"
 
@@ -22,6 +22,7 @@ const ALL_COMMANDS = [
   { id: "github", label: "GitHub", category: "External Link" },
   { id: "linkedin", label: "LinkedIn", category: "External Link" },
   { id: "email", label: "Email", category: "Contact" },
+  { id: "copy-email", label: "Copy Email", category: "Contact" },
   { id: "recruiter", label: "Recruiter Mode", category: "Interactive Guide" },
   { id: "origin", label: "Origin", category: "Section" },
   { id: "systems", label: "Systems", category: "Section" },
@@ -38,13 +39,14 @@ function Timer({ startTime }: { startTime: number }) {
 
   useEffect(() => {
     setMounted(true)
+    if (startTime === 0) return
     const id = setInterval(() => {
       setElapsed((Date.now() - startTime) / 1000)
     }, 80)
     return () => clearInterval(id)
   }, [startTime])
 
-  const displayTime = mounted ? elapsed : 0
+  const displayTime = (mounted && startTime > 0) ? elapsed : 0
 
   return (
     <span style={{ ...MONO, color: TEXT_SECONDARY, fontSize: 10, letterSpacing: "0.25em" }}>
@@ -81,9 +83,44 @@ export function Exploration() {
 
   const [active, setActive] = useState<ChapterId | null>(null)
 
+  const [toastMessage, setToastMessage] = useState<string | null>(null)
+  const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const showToast = useCallback((msg: string) => {
+    setToastMessage(msg)
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current)
+    }
+    toastTimeoutRef.current = setTimeout(() => {
+      setToastMessage(null)
+    }, 2000)
+  }, [])
+
+  const copyEmailToClipboard = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText("prayaskar024@gmail.com")
+      showToast("Copied email address")
+    } catch {
+      showToast("Failed to copy email address")
+    }
+  }, [showToast])
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current)
+      }
+    }
+  }, [])
+
 
   const [stateIdx, setStateIdx] = useState(0)
-  const [startTime] = useState(Date.now())
+  const [startTime, setStartTime] = useState(0)
+  
+  useEffect(() => {
+    setStartTime(Date.now())
+  }, [])
+
   const [showName, setShowName] = useState(false)
   const [pulse, setPulse] = useState(false)
   const [recruiterStep, setRecruiterStep] = useState<number | null>(null)
@@ -494,11 +531,13 @@ export function Exploration() {
 
     // 3. Immediately hide identity labels
     const labels = identityLabelsRef.current.filter(Boolean)
-    gsap.killTweensOf(labels)
-    gsap.set(labels, {
-      opacity: 0,
-      y: yOffset(12)
-    })
+    if (labels.length > 0) {
+      gsap.killTweensOf(labels)
+      gsap.set(labels, {
+        opacity: 0,
+        y: yOffset(12)
+      })
+    }
 
     // 4. Hide the name wrapper
     if (nameWrapperRef.current) {
@@ -511,7 +550,9 @@ export function Exploration() {
 
     // 5. Kill any running hero-letter animations
     const letters = document.querySelectorAll(".hero-letter")
-    gsap.killTweensOf(letters)
+    if (letters.length > 0) {
+      gsap.killTweensOf(letters)
+    }
 
     // 6. Reset the rotating state text
     if (wordRef.current) {
@@ -915,7 +956,10 @@ export function Exploration() {
         window.open("https://www.linkedin.com/in/prayas-kar", "_blank")
         break
       case "email":
-        window.location.href = "mailto:prayaskar024@gmail.com"
+        window.open(GMAIL_COMPOSE_URL, "_blank")
+        break
+      case "copy-email":
+        copyEmailToClipboard()
         break
       case "recruiter":
         handleRecruiterNav(0)
@@ -940,7 +984,7 @@ export function Exploration() {
         closeSection()
         break
     }
-  }, [openSection, closeSection, handleRecruiterNav, recruiterStep, togglePalette])
+  }, [openSection, closeSection, handleRecruiterNav, recruiterStep, togglePalette, copyEmailToClipboard])
 
   const filteredCommands = ALL_COMMANDS.filter(cmd =>
     cmd.label.toLowerCase().includes(paletteSearch.toLowerCase()) ||
@@ -1001,6 +1045,7 @@ export function Exploration() {
     <main
       className="relative h-dvh w-full overflow-hidden"
       style={{ backgroundColor: BG }}
+      suppressHydrationWarning
     >
       <div
         ref={pageWrapperRef}
@@ -1010,6 +1055,7 @@ export function Exploration() {
           pointerEvents: showMobileNav ? "none" : "auto",
           backgroundColor: active ? "#F5E6D3" : "#0C0908",
         }}
+        suppressHydrationWarning
       >
         {/* Three.js blob — always rendered, shifts on section open */}
         <MorphingBlob sectionMode={!!active} hoverActive={showName || pulse} reducedMotion={reducedMotion} />
@@ -1028,6 +1074,7 @@ export function Exploration() {
             backgroundColor: isMobile && active ? "var(--bg-color, #0c0908)" : "transparent",
             pointerEvents: "none",
           }}
+          suppressHydrationWarning
         >
           <div className="flex flex-col items-start gap-1.5 w-full pointer-events-auto">
             <div className="flex items-center justify-between w-full">
@@ -1038,6 +1085,7 @@ export function Exploration() {
                   border: "1px solid var(--border-color-medium, rgba(245,230,211,0.25))",
                   cursor: active ? "pointer" : "default",
                 }}
+                suppressHydrationWarning
               >
                 <span style={{ ...MONO, color: "var(--text-color, #F5E6D3)", fontSize: 11, letterSpacing: "0.2em" }}>
                   {IDENTITY.name}
@@ -1079,7 +1127,10 @@ export function Exploration() {
 
       {/* ── TOP RIGHT ─────────────────────────────────────────────────────── */}
       {!isMobile && (
-        <div className={`absolute right-0 top-0 z-20 flex flex-col items-end gap-3 px-6 py-6 sm:px-10 sm:py-8 ${active && isMobile ? "hidden" : ""}`}>
+        <div 
+          className={`absolute right-0 top-0 z-20 flex flex-col items-end gap-3 px-6 py-6 sm:px-10 sm:py-8 ${active && isMobile ? "hidden" : ""}`}
+          suppressHydrationWarning
+        >
           {!isMobile && (
             <button
               onClick={() => handleRecruiterNav(0)}
@@ -1099,15 +1150,16 @@ export function Exploration() {
                 e.currentTarget.style.borderColor = "var(--border-color-medium, rgba(245,230,211,0.2))"
                 e.currentTarget.style.color = "var(--text-color, #F5E6D3)"
               }}
+              suppressHydrationWarning
             >
               Recruiter Mode
             </button>
           )}
-          <div className="hidden flex-col items-end gap-1 sm:flex">
+          <div className="hidden flex-col items-end gap-1 sm:flex" suppressHydrationWarning>
             {IDENTITY.meta.map((m) => (
-              <span key={m.label} style={{ ...MONO, color: "var(--text-secondary, rgba(245,230,211,0.4))", fontSize: 10, letterSpacing: "0.25em" }}>
+              <span key={m.label} style={{ ...MONO, color: "var(--text-secondary, rgba(245,230,211,0.4))", fontSize: 10, letterSpacing: "0.25em" }} suppressHydrationWarning>
                 {m.label}:{" "}
-                <span style={{ color: "var(--text-color, #F5E6D3)" }}>{m.value}</span>
+                <span style={{ color: "var(--text-color, #F5E6D3)" }} suppressHydrationWarning>{m.value}</span>
               </span>
             ))}
           </div>
@@ -1119,6 +1171,7 @@ export function Exploration() {
         ref={rightNavRef}
         className="absolute right-6 top-1/2 z-20 hidden -translate-y-1/2 flex-col items-end gap-5 sm:flex sm:right-10"
         style={{ opacity: 0 }}
+        suppressHydrationWarning
       >
         {CHAPTERS.map((c) => {
           const isActive = c.id === active
@@ -1380,7 +1433,7 @@ export function Exploration() {
               >
                 {activeChapter.title}
               </h2>
-              <SectionContent content={activeChapter.content} />
+              <SectionContent content={activeChapter.content} onCopyEmail={copyEmailToClipboard} />
             </div>
           </div>
         </div>
@@ -1389,7 +1442,7 @@ export function Exploration() {
 
       {/* ── RECRUITER MODE OVERLAY ────────────────────────────────────────── */}
       {recruiterStep !== null && (() => {
-        const slides = RECRUITER_SLIDES(!!active)
+        const slides = RECRUITER_SLIDES(!!active, copyEmailToClipboard)
         const currentSlide = slides[recruiterStep]
         return (
           <div
@@ -1867,12 +1920,28 @@ export function Exploration() {
           ← HOME
         </button>
       )}
+      {toastMessage && (
+        <div
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 px-4 py-2 border text-[10px] tracking-[0.2em] uppercase transition-opacity duration-300"
+          style={{
+            ...MONO,
+            color: "var(--text-color, #F5E6D3)",
+            borderColor: "var(--border-color-medium, rgba(245,230,211,0.2))",
+            backgroundColor: "rgba(12, 9, 8, 0.95)",
+            backdropFilter: "blur(8px)",
+            borderRadius: "9999px",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+          }}
+        >
+          {toastMessage}
+        </div>
+      )}
     </main>
   )
 }
 
 /* ── RECRUITER MODE WALKTHROUGH SLIDES ──────────────────────────────────── */
-const RECRUITER_SLIDES = (active: boolean) => [
+const RECRUITER_SLIDES = (active: boolean, onCopyEmail: () => void) => [
   {
     title: "01 // NAME",
     desc: "PRAYAS KAR",
@@ -1945,7 +2014,9 @@ const RECRUITER_SLIDES = (active: boolean) => [
           LINKEDIN →
         </a>
         <a
-          href="mailto:prayaskar024@gmail.com"
+          href={GMAIL_COMPOSE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
           className="px-2.5 py-1.5 border text-[9px] tracking-[0.2em] transition-colors"
           style={{
             fontFamily: "var(--font-ibm-mono), 'Courier New', monospace",
@@ -1964,6 +2035,26 @@ const RECRUITER_SLIDES = (active: boolean) => [
         >
           EMAIL →
         </a>
+        <button
+          onClick={onCopyEmail}
+          className="px-2.5 py-1.5 border text-[9px] tracking-[0.2em] transition-colors bg-transparent cursor-pointer"
+          style={{
+            fontFamily: "var(--font-ibm-mono), 'Courier New', monospace",
+            borderColor: active ? "rgba(17,17,17,0.2)" : "rgba(245,230,211,0.2)",
+            color: "var(--text-color)",
+            outline: "none"
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = ACCENT
+            e.currentTarget.style.color = ACCENT
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = active ? "rgba(17,17,17,0.2)" : "rgba(245,230,211,0.2)"
+            e.currentTarget.style.color = "var(--text-color)"
+          }}
+        >
+          COPY_EMAIL →
+        </button>
       </div>
     )
   },
@@ -2070,26 +2161,50 @@ const RECRUITER_SLIDES = (active: boolean) => [
     title: "08 // EMAIL",
     desc: "Reach out directly for data engineering projects, AI model pipelines, or backend collaborations.",
     actions: (
-      <a
-        href="mailto:prayaskar024@gmail.com"
-        className="inline-block mt-3 px-3 py-1.5 border text-[10px] tracking-[0.2em] transition-colors self-start"
-        style={{
-          fontFamily: "var(--font-ibm-mono), 'Courier New', monospace",
-          borderColor: active ? "rgba(17,17,17,0.2)" : "rgba(245,230,211,0.2)",
-          color: "var(--text-color)",
-          textDecoration: "none"
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = ACCENT
-          e.currentTarget.style.color = ACCENT
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = active ? "rgba(17,17,17,0.2)" : "rgba(245,230,211,0.2)"
-          e.currentTarget.style.color = "var(--text-color)"
-        }}
-      >
-        SEND_EMAIL →
-      </a>
+      <div className="flex gap-2 mt-3">
+        <a
+          href={GMAIL_COMPOSE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block px-3 py-1.5 border text-[10px] tracking-[0.2em] transition-colors self-start"
+          style={{
+            fontFamily: "var(--font-ibm-mono), 'Courier New', monospace",
+            borderColor: active ? "rgba(17,17,17,0.2)" : "rgba(245,230,211,0.2)",
+            color: "var(--text-color)",
+            textDecoration: "none"
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = ACCENT
+            e.currentTarget.style.color = ACCENT
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = active ? "rgba(17,17,17,0.2)" : "rgba(245,230,211,0.2)"
+            e.currentTarget.style.color = "var(--text-color)"
+          }}
+        >
+          SEND_EMAIL →
+        </a>
+        <button
+          onClick={onCopyEmail}
+          className="inline-block px-3 py-1.5 border text-[10px] tracking-[0.2em] transition-colors self-start bg-transparent cursor-pointer"
+          style={{
+            fontFamily: "var(--font-ibm-mono), 'Courier New', monospace",
+            borderColor: active ? "rgba(17,17,17,0.2)" : "rgba(245,230,211,0.2)",
+            color: "var(--text-color)",
+            outline: "none"
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = ACCENT
+            e.currentTarget.style.color = ACCENT
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = active ? "rgba(17,17,17,0.2)" : "rgba(245,230,211,0.2)"
+            e.currentTarget.style.color = "var(--text-color)"
+          }}
+        >
+          COPY_EMAIL →
+        </button>
+      </div>
     )
   }
 ]

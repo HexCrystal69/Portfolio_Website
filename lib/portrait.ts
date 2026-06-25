@@ -1,6 +1,8 @@
 // Content model for Prayas Kar's interactive exploration.
 // All text, projects, and links live here — zero component changes needed.
 
+export const GMAIL_COMPOSE_URL = "https://mail.google.com/mail/u/0/?view=cm&fs=1&to=prayaskar024@gmail.com&su=Regarding%20Your%20Portfolio&body=Hi%20Prayas,%0A%0A"
+
 export const IDENTITY = {
   name: "PRAYAS KAR",
   status: "BUILDING IN PUBLIC",

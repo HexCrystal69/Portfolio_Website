@@ -154,6 +154,30 @@ export function MorphingBlob({ sectionMode, hoverActive = false, className = "",
     ringsGroup.position.z = -0.3
     scene.add(ringsGroup)
 
+    // ─── Orbiting nodes group (3 nodes sibling to ringsGroup) ─────────────────
+    const orbitingNodesGroup = new THREE.Group()
+    const orbitNodeParams = [
+      { radius: 0.009, opacity: 0.35, orbitRadius: 0.4 },
+      { radius: 0.011, opacity: 0.45, orbitRadius: 1.0 },
+      { radius: 0.012, opacity: 0.55, orbitRadius: 1.6 }
+    ]
+    const orbitNodes: THREE.Mesh[] = []
+    orbitNodeParams.forEach((params) => {
+      const geo = new THREE.CircleGeometry(params.radius, 32)
+      const mat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color("#FF8C00"),
+        transparent: true,
+        opacity: params.opacity,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      })
+      const mesh = new THREE.Mesh(geo, mat)
+      orbitNodes.push(mesh)
+      orbitingNodesGroup.add(mesh)
+    })
+    orbitingNodesGroup.position.z = -0.29
+    scene.add(orbitingNodesGroup)
+
     // ─── Shockwave rings (3 rings for the burst transition) ───────────────────
     const shockwavesGroup = new THREE.Group()
     const shockwaveRings: THREE.LineLoop[] = []
@@ -231,6 +255,9 @@ export function MorphingBlob({ sectionMode, hoverActive = false, className = "",
     const emissiveDark = new THREE.Color("#000000")
     const baseOrange = new THREE.Color("#FF8C00")
     const brightOrange = new THREE.Color("#FFA040")
+    const accentInactive = new THREE.Color("#FF8C00")
+    const accentActive = new THREE.Color("#FF8C00")
+    const currentAccentColor = new THREE.Color("#FF8C00")
 
     function animate() {
       rafId = requestAnimationFrame(animate)
@@ -270,21 +297,21 @@ export function MorphingBlob({ sectionMode, hoverActive = false, className = "",
           } else {
             if (transitionTime <= 0.15) {
               const p = transitionTime / 0.15
-              glowScaleBoost = 1.0 + (6.0 - 1.0) * p
-              haloScaleBoost = 1.0 + (7.0 - 1.0) * p
+              glowScaleBoost = 1.0 + (3.2 - 1.0) * p
+              haloScaleBoost = 1.0 + (3.8 - 1.0) * p
               ringScaleBoost = 1.0 + (2.2 - 1.0) * p
               
-              emissiveIntensityBoost = 1.0 + (5.0 - 1.0) * p
-              haloOpacityBoost = 1.0 + (2.0 - 1.0) * p
+              emissiveIntensityBoost = 1.0 + (2.2 - 1.0) * p
+              haloOpacityBoost = 1.0 + (1.25 - 1.0) * p
               ringOpacityBoost = 1.0 + (0.1 - 1.0) * p
             } else {
               const p = Math.min(1.0, (transitionTime - 0.15) / 1.05)
-              glowScaleBoost = 6.0 + (1.0 - 6.0) * p
-              haloScaleBoost = 7.0 + (1.0 - 7.0) * p
+              glowScaleBoost = 3.2 + (1.0 - 3.2) * p
+              haloScaleBoost = 3.8 + (1.0 - 3.8) * p
               ringScaleBoost = 2.2 + (1.0 - 2.2) * p
               
-              emissiveIntensityBoost = 5.0 + (1.0 - 5.0) * p
-              haloOpacityBoost = 2.0 + (1.0 - 2.0) * p
+              emissiveIntensityBoost = 2.2 + (1.0 - 2.2) * p
+              haloOpacityBoost = 1.25 + (1.0 - 1.25) * p
               ringOpacityBoost = 0.1 + (1.0 - 0.1) * p
             }
           }
@@ -314,7 +341,7 @@ export function MorphingBlob({ sectionMode, hoverActive = false, className = "",
             ring.scale.setScalar(scaleFactor)
             
             // Peak opacity 1.0, fade to 0.0
-            mat.opacity = Math.sin(t_ring * Math.PI)
+            mat.opacity = 0.35 * Math.sin(t_ring * Math.PI)
           } else {
             if (section) {
               ring.scale.setScalar((5.0 - i) + 0.1 * Math.sin(t * 0.4 + i * 0.2))
@@ -364,6 +391,27 @@ export function MorphingBlob({ sectionMode, hoverActive = false, className = "",
           const mat = ring.material as THREE.LineBasicMaterial
           mat.opacity = currentRingOpacity * Math.pow(1 - i / 8, 1.5)
         }
+      })
+
+      // Lerp active accent color
+      const targetAccent = section ? accentActive : accentInactive
+      currentAccentColor.lerp(targetAccent, LERP_VAL)
+
+      // Update orbiting node positions and colors
+      const orbitPeriods = [14, 24, 36]
+      orbitNodes.forEach((node, i) => {
+        const period = orbitPeriods[i]
+        const radius = orbitNodeParams[i].orbitRadius
+        const angle = (t / period) * Math.PI * 2
+        
+        node.position.set(
+          Math.cos(angle) * radius,
+          Math.sin(angle) * radius,
+          0
+        )
+        
+        const mat = node.material as THREE.MeshBasicMaterial
+        mat.color.copy(currentAccentColor)
       })
 
       // Apply to uniform materials
@@ -449,6 +497,7 @@ export function MorphingBlob({ sectionMode, hoverActive = false, className = "",
       glow.position.set(currentX, currentY, 0)
       halo.position.set(currentX, currentY, 0)
       ringsGroup.position.set(currentX, currentY, -0.3)
+      orbitingNodesGroup.position.set(currentX, currentY, -0.29)
       shockwavesGroup.position.set(currentX, currentY, -0.05)
 
       blob.scale.setScalar(currentScale)
@@ -501,6 +550,17 @@ export function MorphingBlob({ sectionMode, hoverActive = false, className = "",
 
       shockwavesGroup.children.forEach((child) => {
         if (child instanceof THREE.LineLoop) {
+          child.geometry.dispose()
+          if (Array.isArray(child.material)) {
+            child.material.forEach((m) => m.dispose())
+          } else {
+            child.material.dispose()
+          }
+        }
+      })
+
+      orbitingNodesGroup.children.forEach((child) => {
+        if (child instanceof THREE.Mesh) {
           child.geometry.dispose()
           if (Array.isArray(child.material)) {
             child.material.forEach((m) => m.dispose())

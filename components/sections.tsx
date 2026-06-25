@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import type { ChapterContent, Project } from "@/lib/portrait"
+import { GMAIL_COMPOSE_URL, type ChapterContent, type Project } from "@/lib/portrait"
 
 const DIVIDER = (
   <div
@@ -136,9 +136,11 @@ function ColumnsSection({
 function EditorialSection({
   body,
   bullets,
+  onCopyEmail,
 }: {
   body: string
   bullets: string[]
+  onCopyEmail?: () => void
 }) {
   return (
     <div className="flex w-full flex-col gap-8">
@@ -195,12 +197,21 @@ function EditorialSection({
           [ LINKEDIN ]
         </a>
         <a
-          href="mailto:prayaskar024@gmail.com"
+          href={GMAIL_COMPOSE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
           className="text-xs hover:text-[#FF8C00] transition-colors"
           style={{ fontFamily: "var(--font-ibm-mono)", color: "var(--text-color, #F5E6D3)" }}
         >
           [ EMAIL ]
         </a>
+        <button
+          onClick={onCopyEmail}
+          className="text-xs hover:text-[#FF8C00] transition-colors bg-transparent border-none p-0 cursor-pointer"
+          style={{ fontFamily: "var(--font-ibm-mono)", color: "var(--text-color, #F5E6D3)", outline: "none" }}
+        >
+          [ COPY ]
+        </button>
       </div>
     </div>
   )
@@ -381,7 +392,7 @@ function WorkSection({
 }
 
 /* ── Dispatcher ──────────────────────────────────────────────────────────── */
-export function SectionContent({ content }: { content: ChapterContent }) {
+export function SectionContent({ content, onCopyEmail }: { content: ChapterContent; onCopyEmail?: () => void }) {
   switch (content.type) {
     case "layers":
       return <LayersSection items={content.items} />
@@ -390,7 +401,7 @@ export function SectionContent({ content }: { content: ChapterContent }) {
     case "columns":
       return <ColumnsSection items={content.items} quote={content.quote} />
     case "editorial":
-      return <EditorialSection body={content.body} bullets={content.bullets} />
+      return <EditorialSection body={content.body} bullets={content.bullets} onCopyEmail={onCopyEmail} />
     case "work":
       return <WorkSection projects={content.projects} />
     default:
