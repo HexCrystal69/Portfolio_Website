@@ -200,7 +200,7 @@ export const CHAPTERS: Chapter[] = [
           architecture: "Event-driven streaming pipeline using Kafka for message queueing, Spark for data processing, and PostgreSQL/NoSQL databases for storage.",
           challenges: "Handling event serialization and managing pipeline throughput.",
           outcomes: "Operational analytics pipeline capable of capturing event logs.",
-          github: "https://github.com/HexCrystal69/realtime-event-platform",
+          github: "https://github.com/HexCrystal69/Real-Time-Event-Processing-Platform",
         },
       ],
     },
